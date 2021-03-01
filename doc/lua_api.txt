@@ -2200,6 +2200,12 @@ Some of the values in the key-value store are handled specially:
   The default currently is the same as right/down.
   Example: 6 = 2 + 1*4 = middle,up
 
+Item metadata is usually not fully sent to client (except the client has
+local map saving enabled or it is disabled globaly by the server). Only
+the fields `description`, `short_description`, `color`, `palette_index`
+and `tool_capabilities` are always sent. If there are any other fields,
+they will be hashed into an additional `_hash` field.
+
 Example:
 
     local meta = stack:get_meta()

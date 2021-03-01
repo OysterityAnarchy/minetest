@@ -2810,6 +2810,11 @@
 #    type: int min: -1 max: 9
 # map_compression_level_net = -1
 
+#    Sends all item metadata fields to clients. Otherwise the server will truncate
+#    irrelevant data per-client to reduce load and network traffic.
+#    Note: Set to "true" to allow local map saving on clients prior to 5.5.0-dev.
+# send_all_item_metadata = false
+
 ### Server
 
 #    Format of player chat messages. The following strings are valid placeholders:

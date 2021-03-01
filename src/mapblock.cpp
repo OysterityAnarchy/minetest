@@ -334,7 +334,8 @@ static void correctBlockNodeIds(const NameIdMapping *nimap, MapNode *nodes,
 	}
 }
 
-void MapBlock::serialize(std::ostream &os_compressed, u8 version, bool disk, int compression_level)
+
+void MapBlock::serialize(std::ostream &os_compressed, u8 version, bool disk, int compression_level, InventoryOptimizationOption opt)
 {
 	if(!ser_ver_supported(version))
 		throw VersionMismatchException("ERROR: MapBlock format not supported");
@@ -403,10 +404,10 @@ void MapBlock::serialize(std::ostream &os_compressed, u8 version, bool disk, int
 		Node metadata
 	*/
 	if (version >= 29) {
-		m_node_metadata.serialize(os, version, disk);
+		m_node_metadata.serialize(os, version, disk, false, opt);
 	} else {
 		// use os_raw from above to avoid allocating another stream object
-		m_node_metadata.serialize(os_raw, version, disk);
+		m_node_metadata.serialize(os_raw, version, disk, false, opt);
 		// prior to 29 node data was compressed individually
 		compress(os_raw.str(), os, version, compression_level);
 	}

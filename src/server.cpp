@@ -1492,19 +1492,18 @@ void Server::SendInventory(PlayerSAO *sao, bool incremental)
 {
 	RemotePlayer *player = sao->getPlayer();
 
-	// Do not send new format to old clients
-	incremental &= player->protocol_version >= 38;
-
 	UpdateCrafting(player);
 
 	/*
 		Serialize it
 	*/
 
-	NetworkPacket pkt(TOCLIENT_INVENTORY, 0, sao->getPeerID());
+	session_t peer_id = sao->getPeerID();
+
+	NetworkPacket pkt(TOCLIENT_INVENTORY, 0, peer_id);
 
 	std::ostringstream os(std::ios::binary);
-	sao->getInventory()->serialize(os, incremental);
+	sao->getInventory()->serialize(os, getOptimisationOption(peer_id, incremental));
 	sao->getInventory()->setModified(false);
 	player->setModified(true);
 
@@ -1874,7 +1873,7 @@ void Server::SendSetLighting(session_t peer_id, const Lighting &lighting)
 {
 	NetworkPacket pkt(TOCLIENT_SET_LIGHTING,
 			4, peer_id);
-	
+
 	pkt << lighting.shadow_intensity;
 
 	Send(&pkt);
@@ -2364,7 +2363,7 @@ void Server::sendMetadataChanged(const std::unordered_set<v3s16> &positions, flo
 
 		// Send the meta changes
 		os.str("");
-		meta_updates_list.serialize(os, client->serialization_version, false, true, true);
+		meta_updates_list.serialize(os, client->serialization_version, false, true, true, getOptimisationOption(i));
 		std::string raw = os.str();
 		os.str("");
 		compressZlib(raw, os);
@@ -2392,7 +2391,7 @@ void Server::SendBlockNoLock(session_t peer_id, MapBlock *block, u8 ver,
 	// Serialize the block in the right format
 	if (!sptr) {
 		std::ostringstream os(std::ios_base::binary);
-		block->serialize(os, ver, false, net_compression_level);
+		block->serialize(os, ver, false, net_compression_level, getOptimisationOption(peer_id));
 		block->serializeNetworkSpecific(os);
 		s = os.str();
 		sptr = &s;
@@ -2766,7 +2765,7 @@ void Server::sendDetachedInventory(Inventory *inventory, const std::string &name
 
 		// Serialization & NetworkPacket isn't a love story
 		std::ostringstream os(std::ios_base::binary);
-		inventory->serialize(os);
+		inventory->serialize(os, getOptimisationOption(peer_id, false));
 		inventory->setModified(false);
 
 		const std::string &os_str = os.str();
@@ -4144,4 +4143,26 @@ bool Server::migrateModStorageDatabase(const GameParams &game_params, const Sett
 	}
 
 	return succeeded;
+}
+
+InventoryOptimizationOption Server::getOptimisationOption(session_t peer_id, bool incremental)
+{
+	thread_local bool send_all = g_settings->getBool("send_all_item_metadata");
+	RemoteClient *client = nullptr;
+
+	if (peer_id != PEER_ID_INEXISTENT)
+		client = getClient(peer_id, CS_Created);
+
+	InventoryOptimizationOption opt = INV_OO_META_SPARSE;
+
+	if (send_all || (client && client->mapsaving_enabled))
+		opt = INV_OO_NONE;
+
+	// Do not send new format to old clients
+	incremental &= (client && client->net_proto_version >= 38);
+
+	if (incremental)
+		opt = (InventoryOptimizationOption) (opt | INV_OO_INCREMENTAL);
+
+	return opt;
 }

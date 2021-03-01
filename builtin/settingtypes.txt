@@ -1763,6 +1763,11 @@ max_packets_per_iteration (Max. packets per iteration) int 1024 1 65535
 #     9 - best compression, slowest
 map_compression_level_net (Map Compression Level for Network Transfer) int -1 -1 9
 
+#    Sends all item metadata fields to clients. Otherwise the server will truncate
+#    irrelevant data per-client to reduce load and network traffic.
+#    Note: Set to "true" to allow local map saving on clients prior to 5.5.0-dev.
+send_all_item_metadata (Send all Item metadata to clients) bool false
+
 [**Server]
 
 #    Format of player chat messages. The following strings are valid placeholders:
