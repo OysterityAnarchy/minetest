@@ -21,6 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "itemstackmetadata.h"
 #include "util/serialize.h"
 #include "util/strfnd.h"
+#include "util/numeric.h"
 #include <algorithm>
 
 #define DESERIALIZE_START '\x01'
@@ -58,14 +59,28 @@ bool ItemStackMetadata::setString(const std::string &name, const std::string &va
 	return result;
 }
 
-void ItemStackMetadata::serialize(std::ostream &os) const
+void ItemStackMetadata::serialize(std::ostream &os, InventoryOptimizationOption opt) const
 {
 	std::ostringstream os2(std::ios_base::binary);
+	std::ostringstream os_hash(std::ios_base::binary);
+
 	os2 << DESERIALIZE_START;
+	bool sparse_meta = opt & INV_OO_META_SPARSE;
 	for (const auto &stringvar : m_stringvars) {
+		bool silent = sparse_meta
+			&& stringvar.first != TOOLCAP_KEY
+			&& stringvar.first != "description"
+			&& stringvar.first != "color"
+			&& stringvar.first != "short_description"
+			&& stringvar.first != "palette_index";
 		if (!stringvar.first.empty() || !stringvar.second.empty())
-			os2 << stringvar.first << DESERIALIZE_KV_DELIM
+			(silent ? os_hash : os2) << stringvar.first << DESERIALIZE_KV_DELIM
 				<< stringvar.second << DESERIALIZE_PAIR_DELIM;
+	}
+	std::string hash_str = os_hash.str();
+	if (! hash_str.empty()) {
+		os2 << "_hash" << DESERIALIZE_KV_DELIM
+			<< murmur_hash_64_ua(hash_str.data(), hash_str.length(), 0xdeadbeef) << DESERIALIZE_PAIR_DELIM;
 	}
 	os << serializeJsonStringIfNeeded(os2.str());
 }
