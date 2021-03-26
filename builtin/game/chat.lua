@@ -1167,7 +1167,7 @@ core.register_chatcommand("shutdown", {
 
 		if delay == 0 then
 			core.log("action", name .. " shuts down server")
-			core.chat_send_all("*** "..S("Server shutting down (operator request)."))
+			core.chat_send_all(S("Server shutting down (operator request)."))
 		end
 		core.request_shutdown(message:trim(), bool_reconnect, delay)
 		return true
@@ -1256,7 +1256,7 @@ core.register_chatcommand("clearobjects", {
 		end
 		core.clear_objects(options)
 		core.log("action", "Object clearing done.")
-		core.chat_send_all("*** "..S("Cleared all objects."))
+		core.chat_send_all(S("Cleared all objects."))
 		return true
 	end,
 })
