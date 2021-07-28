@@ -1612,8 +1612,10 @@ void Server::SendAddParticleSpawner(session_t peer_id, u16 protocol_version,
 		) / 4.0f * BS;
 		const float radius_sq = radius * radius;
 		/* Don't send short-lived spawners to distant players.
+		 ** MODIFICATION for clam: don't send particles to distant players at all
+			 line below originally said const float radius_sq = radius * radius && p.time <= 1.0f;
 		 * This could be replaced with proper tracking at some point. */
-		const bool distance_check = !attached_id && p.time <= 1.0f;
+		const bool distance_check = !attached_id;
 
 		for (const session_t client_id : clients) {
 			RemotePlayer *player = m_env->getPlayer(client_id);
