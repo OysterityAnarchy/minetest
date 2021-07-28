@@ -1693,7 +1693,7 @@ void Server::SendAddParticleSpawner(const std::string &to_player,
 	/* Don't send short-lived spawners to distant players.
 	 * This could be replaced with proper tracking at some point.
 	 * A lifetime of 0 means that the spawner exists forever. */
-	const bool distance_check = !attached_id && p.time <= 1.0f && p.time != 0.0f;
+	const bool distance_check = !attached_id;
 
 	const auto &consider_player = [&] (RemotePlayer *player) {
 		if (distance_check) {
