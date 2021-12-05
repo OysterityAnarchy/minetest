@@ -721,7 +721,7 @@ bool PlayerSAO::checkMovementCheat()
 
 	required_time /= anticheat_movement_tolerance;
 
-	if (m_move_pool.grab(required_time)) {
+	if (m_move_pool.grab(required_time) && getBasePosition().Y >= m_last_good_position.Y - 100) {
 		m_last_good_position = getBasePosition();
 	} else {
 		const float LAG_POOL_MIN = 5.0;
