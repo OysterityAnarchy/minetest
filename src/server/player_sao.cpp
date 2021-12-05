@@ -633,7 +633,7 @@ bool PlayerSAO::checkMovementCheat()
 		required_time = MYMAX(required_time, d_vert / s);
 	}
 
-	if (m_move_pool.grab(required_time)) {
+	if (m_move_pool.grab(required_time) && m_base_position.Y >= m_last_good_position.Y - 100) {
 		m_last_good_position = m_base_position;
 	} else {
 		const float LAG_POOL_MIN = 5.0;
