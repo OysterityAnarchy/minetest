@@ -63,6 +63,7 @@ core.register_on_chat_message(function(name, message)
 	param = param or ""
 
 	-- Run core.registered_on_chatcommands callbacks.
+	core.limited_execution_end()
 	if core.run_callbacks(core.registered_on_chatcommands, 5, name, cmd, param) then
 		return true
 	end
