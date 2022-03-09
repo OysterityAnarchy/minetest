@@ -21,6 +21,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <iostream>
 #include <queue>
 #include <algorithm>
+#include <condition_variable>
+#include <signal.h>
 #include "network/connection.h"
 #include "network/networkprotocol.h"
 #include "network/serveropcodes.h"
@@ -136,6 +138,72 @@ void *ServerThread::run()
 	return nullptr;
 }
 
+class LimiterThread : public Thread
+{
+public:
+
+	LimiterThread():
+		Thread("Limiter"),
+		lock(mtx)
+	{}
+
+	~LimiterThread();
+
+	void *run();
+
+	bool active = false;
+	std::string func;
+
+	std::condition_variable cv;
+	std::mutex mtx;
+	std::unique_lock<std::mutex> lock;
+
+	std::condition_variable cv_status;
+	std::mutex mtx_status;
+
+private:
+	void status();
+
+	bool shutdown = false;
+};
+
+LimiterThread::~LimiterThread()
+{
+	shutdown = true;
+
+	for (int i = 0; i < 2; i++)
+		cv.notify_one();
+}
+
+void *LimiterThread::run()
+{
+	while (! active) {
+		cv.wait(lock);
+		status();
+
+		cv.wait_for(lock, std::chrono::minutes(1));
+		status();
+	}
+
+	if (shutdown)
+		return NULL;
+
+	errorstream << "Waiting for " << func
+		<< " took too long, forcefully shutting down."
+		<< std::endl;
+
+	for (int i = 0; i < 3; i++)
+		raise(SIGTERM);
+
+	return NULL;
+}
+
+void LimiterThread::status()
+{
+	MutexAutoLock lock(mtx_status);
+	cv_status.notify_one();
+}
+
 v3f ServerPlayingSound::getPos(ServerEnvironment *env, bool *pos_exists) const
 {
 	if (pos_exists)
@@ -247,6 +315,7 @@ Server::Server(
 	m_nodedef(createNodeDefManager()),
 	m_craftdef(createCraftDefManager()),
 	m_thread(new ServerThread(this)),
+	m_limiter_thread(new LimiterThread()),
 	m_clients(m_con),
 	m_admin_chat(iface),
 	m_on_shutdown_errmsg(on_shutdown_errmsg),
@@ -369,6 +438,9 @@ Server::~Server()
 	if (m_mod_storage_database)
 		m_mod_storage_database->endSave();
 
+	m_limiter_thread->stop();
+	delete m_limiter_thread;
+
 	// Delete things in the reverse order of creation
 	delete m_emerge;
 	delete m_env;
@@ -393,6 +465,8 @@ Server::~Server()
 
 void Server::init()
 {
+	m_limiter_thread->start();
+
 	infostream << "Server created for gameid \"" << m_gamespec.id << "\"";
 	if (m_simple_singleplayer_mode)
 		infostream << " in simple singleplayer mode" << std::endl;
@@ -4145,6 +4219,42 @@ bool Server::migrateModStorageDatabase(const GameParams &game_params, const Sett
 	}
 
 	return succeeded;
+}
+
+void Server::limitedExecutionBegin(std::string func)
+{
+	m_limiter_thread->mtx.lock();
+
+	if (m_limiter_thread->active) {
+		m_limiter_thread->mtx.unlock();
+		return;
+	}
+
+	m_limiter_thread->active = true;
+	m_limiter_thread->func = func;
+	m_limiter_thread->cv.notify_one();
+
+	std::unique_lock<std::mutex> lock(m_limiter_thread->mtx_status);
+	m_limiter_thread->mtx.unlock();
+	m_limiter_thread->cv_status.wait(lock);
+}
+
+void Server::limitedExecutionEnd()
+{
+	m_limiter_thread->mtx.lock();
+
+	if (!m_limiter_thread->active) {
+		m_limiter_thread->mtx.unlock();
+		return;
+	}
+
+	m_limiter_thread->active = false;
+	m_limiter_thread->func = "";
+	m_limiter_thread->cv.notify_one();
+
+	std::unique_lock<std::mutex> lock(m_limiter_thread->mtx_status);
+	m_limiter_thread->mtx.unlock();
+	m_limiter_thread->cv_status.wait(lock);
 }
 
 InventoryOptimizationOption Server::getOptimisationOption(session_t peer_id, bool incremental)

@@ -232,16 +232,16 @@ function core.register_tool(name, tooldef)
 	end
 	if tooldef.tool_capabilities == nil and
 	   (tooldef.full_punch_interval ~= nil or
-	    tooldef.basetime ~= nil or
-	    tooldef.dt_weight ~= nil or
-	    tooldef.dt_crackiness ~= nil or
-	    tooldef.dt_crumbliness ~= nil or
-	    tooldef.dt_cuttability ~= nil or
-	    tooldef.basedurability ~= nil or
-	    tooldef.dd_weight ~= nil or
-	    tooldef.dd_crackiness ~= nil or
-	    tooldef.dd_crumbliness ~= nil or
-	    tooldef.dd_cuttability ~= nil) then
+		tooldef.basetime ~= nil or
+		tooldef.dt_weight ~= nil or
+		tooldef.dt_crackiness ~= nil or
+		tooldef.dt_crumbliness ~= nil or
+		tooldef.dt_cuttability ~= nil or
+		tooldef.basedurability ~= nil or
+		tooldef.dd_weight ~= nil or
+		tooldef.dd_crackiness ~= nil or
+		tooldef.dd_crumbliness ~= nil or
+		tooldef.dd_cuttability ~= nil) then
 		tooldef.tool_capabilities = {
 			full_punch_interval = tooldef.full_punch_interval,
 			basetime = tooldef.basetime,
@@ -426,7 +426,12 @@ function core.run_callbacks(callbacks, mode, ...)
 	for i = 1, cb_len do
 		local origin = core.callback_origins[callbacks[i]]
 		core.set_last_run_mod(origin.mod)
+
+		local info = debug.getinfo(callbacks[i])
+
+		core.limited_execution_begin(info.source .. ":" .. info.linedefined)
 		local cb_ret = callbacks[i](...)
+		core.limited_execution_end()
 
 		if mode == 0 and i == 1 then
 			ret = cb_ret

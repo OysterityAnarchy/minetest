@@ -115,6 +115,12 @@ private:
 	// serialize_roundtrip(obj)
 	static int l_serialize_roundtrip(lua_State *L);
 
+	// limited_execution_begin(func)
+	static int l_limited_execution_begin(lua_State *L);
+
+	// limited_execution_end()
+	static int l_limited_execution_end(lua_State *L);
+
 public:
 	static void Initialize(lua_State *L, int top);
 	static void InitializeAsync(lua_State *L, int top);

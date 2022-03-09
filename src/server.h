@@ -71,6 +71,7 @@ struct MoonParams;
 struct StarParams;
 struct Lighting;
 class ServerThread;
+class LimiterThread;
 class ServerModManager;
 class ServerInventoryManager;
 struct PackedValue;
@@ -88,7 +89,7 @@ struct MediaInfo
 	bool no_announce; // true: not announced in TOCLIENT_ANNOUNCE_MEDIA (at player join)
 
 	MediaInfo(const std::string &path_="",
-	          const std::string &sha1_digest_=""):
+			  const std::string &sha1_digest_=""):
 		path(path_),
 		sha1_digest(sha1_digest_),
 		no_announce(false)
@@ -385,6 +386,10 @@ public:
 	// Data transferred into async envs at init time
 	std::unique_ptr<PackedValue> m_async_globals_data;
 
+	// execution time limits
+	void limitedExecutionBegin(std::string func);
+	void limitedExecutionEnd();
+
 	// Bind address
 	Address m_bind_addr;
 
@@ -626,6 +631,9 @@ private:
 
 	// The server mainly operates in this thread
 	ServerThread *m_thread = nullptr;
+
+	// Limiting
+	LimiterThread *m_limiter_thread = nullptr;
 
 	/*
 		Time related stuff

@@ -596,6 +596,18 @@ int ModApiServer::l_serialize_roundtrip(lua_State *L)
 	return 1;
 }
 
+int ModApiServer::l_limited_execution_begin(lua_State *L)
+{
+	getServer(L)->limitedExecutionBegin(luaL_checkstring(L, 1));
+	return 0;
+}
+
+int ModApiServer::l_limited_execution_end(lua_State *L)
+{
+	getServer(L)->limitedExecutionEnd();
+	return 0;
+}
+
 void ModApiServer::Initialize(lua_State *L, int top)
 {
 	API_FCT(request_shutdown);
@@ -633,6 +645,9 @@ void ModApiServer::Initialize(lua_State *L, int top)
 	API_FCT(do_async_callback);
 	API_FCT(register_async_dofile);
 	API_FCT(serialize_roundtrip);
+
+	API_FCT(limited_execution_begin);
+	API_FCT(limited_execution_end);
 }
 
 void ModApiServer::InitializeAsync(lua_State *L, int top)
